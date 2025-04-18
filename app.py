@@ -6,12 +6,12 @@ from io import BytesIO
 
 st.set_page_config(page_title="Customer Categorizer", layout="centered")
 st.title("📊 Customer Name Categorizer")
-st.write("Upload your Excel file containing customer names. This tool will classify them as **Individual**, **Other**, or **Needs Review** based on name patterns and keywords.")
+st.write("Upload your Excel file containing customer names. This tool will classify them as **In Scope**, **Out of scope**, or **Need Review** based on name patterns and keywords.")
 
 # --- Upload file ---
 uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx"])
 
-# --- Keywords for 'Other' classification ---
+# --- Keywords for 'Out of Scope' classification ---
 non_individual_keywords = [
     "inc", "inc.", "llc", "l.l.c.", "ltd", "ltd.", "limited", "corp", "corporation", "co", "co.", "pte", "pvt", "llp",
     "gmbh", "ag", "nv", "bv", "kk", "oy", "ab", "plc", "s.a", "s.a.s", "sa", "sarl", "sl", "aps", "as", "kft", "pt", "sdn", "bhd",
@@ -26,13 +26,13 @@ non_individual_keywords = [
     "bookshop", "library", "distribution", "distributors", "outlet", "media", "publications", "books", "press",
     "foundation", "fondation", "fondazione", "trust", "union", "syndicate", "board", "chamber", "association",
     "club", "society", "network", "cooperative", "federation", "council", "committee", "coalition", "initiative",
-    "team", "division", "branch", "unit", "project", "consortium", "alliance", "hub", "taskforce", "incubator", "accelerator"
+    "team", "division", "branch", "unit", "project", "consortium", "alliance", "hub", "taskforce", "incubator", "accelerator","pharmacy","tech"
 ]
 
 # --- Categorization logic ---
 def categorize_customer(name):
     if pd.isna(name) or not str(name).strip():
-        return "Needs Review"
+        return "Out of Scope"
 
     name_lower = str(name).lower()
     word_count = len(name_lower.split())
@@ -41,7 +41,7 @@ def categorize_customer(name):
         return "Other"
 
     if word_count <= 3:
-        return "Individual"
+        return "In Scope"
 
     return "Needs Review"
 
