@@ -16,7 +16,7 @@ non_individual_keywords = [
     "inc", "inc.", "llc", "l.l.c.", "ltd", "ltd.", "limited", "corp", "corporation", "co", "co.", "pte", "pvt", "llp",
     "gmbh", "ag", "nv", "bv", "kk", "oy", "ab", "plc", "s.a", "s.a.s", "sa", "sarl", "sl", "aps", "as", "kft", "pt", "sdn", "bhd",
     "university", "uni", "institute", "inst", "college", "academy", "school", "faculty", "dept", "department", "cnrs",
-    "research", "laboratory", "lab", "education", "educational", "engineering", "polytechnic", "polytech",
+    "research", "laboratory", "lab", "education", "educational", "engineering", "polytechnic", "polytech","state"
     "centre", "center", "r&d", "science", "sciences", "technical", "technological", "technology", "innovation",
     "biotech", "medtech", "ai", "ml", "cybernetics", "govt", "government", "ngo", "n.g.o", "nonprofit", "non-profit",
     "ministry", "embassy", "consulate", "office", "admin", "administration", "secretariat", "authority", "commission",
@@ -26,7 +26,7 @@ non_individual_keywords = [
     "bookshop", "library", "distribution", "distributors", "outlet", "media", "publications", "books", "press",
     "foundation", "fondation", "fondazione", "trust", "union", "syndicate", "board", "chamber", "association",
     "club", "society", "network", "cooperative", "federation", "council", "committee", "coalition", "initiative",
-    "team", "division", "branch", "unit", "project", "consortium", "alliance", "hub", "taskforce", "incubator", "accelerator","pharmacy","tech"
+    "team", "division", "branch", "unit", "project", "consortium", "alliance", "hub", "taskforce", "incubator", "accelerator","pharmacy","tech","univ"
 ]
 
 # --- Categorization logic ---
