@@ -10,13 +10,14 @@ def load_name_dataset():
     return NameDataset(load_first_names=True, load_last_names=True)
 nd = load_name_dataset()
 
-# Expanded non-individual keywords including pharmacy-specific terms
+# Expanded non-individual keywords for global coverage
 non_individual_keywords = [
-    # Legal/Corporate Structures
+    # Legal/Corporate Structures (Global)
     "inc", "inc.", "llc", "l.l.c.", "ltd", "ltd.", "limited", "corp", "corporation", "co", "co.", "pte", "pvt", "llp",
     "gmbh", "ag", "nv", "bv", "kk", "oy", "ab", "plc", "s.a", "s.a.s", "sa", "sarl", "sl", "aps", "as", "kft", "pt", "sdn", "bhd",
-    # Pharmacy/Healthcare
-    "pharmacy", "drugstore", "healthcare", "medical", "clinic", "hospital",
+    "srl", "pty ltd", "se", "a/s", "sp zoo", "eurl",
+    # Pharmacy/Healthcare (Global)
+    "pharmacy", "drugstore", "healthcare", "medical", "clinic", "hospital", "apothecary", "dispensary",
     # Academic/Institutional
     "university", "uni", "institute", "inst", "college", "academy", "school", "faculty", "dept", "department",
     # Science/R&D
@@ -26,7 +27,7 @@ non_individual_keywords = [
     # Professional Services
     "solutions", "consulting", "partners", "services", "group",
     # Retail/Media
-    "store", "shop", "outlet",
+    "store", "shop", "outlet", "market",
     # Others
     "foundation", "trust", "association"
 ]
@@ -55,7 +56,8 @@ def classify_name(name):
                 return "Out of Scope"
             else:
                 return "Needs Review"  # For ambiguous cases
-    except Exception:
+    except Exception as e:
+        st.error(f"Error in classification: {e}")
         return "Needs Review"
     return "Out of Scope"
 
