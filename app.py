@@ -4,14 +4,13 @@ from flask import Flask, request, render_template, send_file
 from names_dataset import NameDataset
 
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['PROCESSED_FOLDER'] = 'processed'
+app.config['UPLOAD_FOLDER'] = 'uploads'  # Specify upload folder
+app.config['PROCESSED_FOLDER'] = 'processed'  # Specify processed folder
 
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-os.makedirs(app.config['PROCESSED_FOLDER'], exist_ok=True)
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)  # Ensure the 'uploads' folder exists
+os.makedirs(app.config['PROCESSED_FOLDER'], exist_ok=True)  # Ensure the 'processed' folder exists
 
-# Initialize name-dataset once
-nd = NameDataset()
+nd = NameDataset()  # Initialize name-dataset
 
 # Out of Scope Keywords
 out_of_scope_keywords = [
