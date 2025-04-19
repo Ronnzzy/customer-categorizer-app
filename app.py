@@ -4,46 +4,65 @@ import os
 from io import BytesIO
 from names_dataset import NameDataset
 
-# Load name database
+# Load name database with caching
 @st.cache_resource
 def load_name_dataset():
-    return NameDataset()
+    return NameDataset(load_first_names=True, load_last_names=True)
 nd = load_name_dataset()
 
-# Company-related keywords (extensive)
-company_keywords = [
-    "inc", "ltd", "llc", "plc", "corp", "co.", "company", "corporation", "incorporated",
-    "gmbh", "s.a.", "s.a", "sa", "pte", "pty", "bv", "kg", "kgaa", "oy", "ab", "srl", "sro",
-    "foundation", "trust", "association", "group", "partners", "industries", "enterprise",
-    "consulting", "ventures", "technologies", "systems", "solutions", "services", "university",
-    "college", "institute", "school", "bank", "society", "ngo", "cooperative", "govt", "government",
-    "ministries", "municipal", "hospital", "clinic", "holding", "limited", "union", "agency", "club"
+# Expanded non-individual keywords including pharmacy-specific terms
+non_individual_keywords = [
+    # Legal/Corporate Structures
+    "inc", "inc.", "llc", "l.l.c.", "ltd", "ltd.", "limited", "corp", "corporation", "co", "co.", "pte", "pvt", "llp",
+    "gmbh", "ag", "nv", "bv", "kk", "oy", "ab", "plc", "s.a", "s.a.s", "sa", "sarl", "sl", "aps", "as", "kft", "pt", "sdn", "bhd",
+    # Pharmacy/Healthcare
+    "pharmacy", "drugstore", "healthcare", "medical", "clinic", "hospital",
+    # Academic/Institutional
+    "university", "uni", "institute", "inst", "college", "academy", "school", "faculty", "dept", "department",
+    # Science/R&D
+    "centre", "center", "r&d", "science", "biotech", "medtech", "ai",
+    # Government/NGO
+    "govt", "government", "ngo", "ministry", "agency",
+    # Professional Services
+    "solutions", "consulting", "partners", "services", "group",
+    # Retail/Media
+    "store", "shop", "outlet",
+    # Others
+    "foundation", "trust", "association"
 ]
 
-# Check name category
+# Enhanced name classification logic
 def classify_name(name):
     try:
-        name = str(name).strip()
-        name_lower = name.lower()
+        name = str(name).strip().lower()
+        name_parts = name.split()
 
-        # Check for company keywords
-        for keyword in company_keywords:
-            if keyword in name_lower:
+        # Check for non-individual keywords
+        for keyword in non_individual_keywords:
+            if keyword in name:
                 return "Out of Scope"
 
-        # Check if it's a known first name
-        first_word = name.split()[0]
-        result = nd.search(first_word)
-        if result and 'first_name' in result:
-            return "In Scope"
-    except:
-        pass
+        # Check if it's an individual name using NameDataset
+        if len(name_parts) >= 1:
+            first_word = name_parts[0]
+            last_word = name_parts[-1] if len(name_parts) > 1 else None
+            first_result = nd.search(first_word)
+            last_result = nd.search(last_word) if last_word else {'last_name': None}
+
+            if (first_result.get('first_name') or last_result.get('last_name')) and not any(kw in name for kw in non_individual_keywords):
+                return "In Scope"
+            elif not first_result.get('first_name') and not last_result.get('last_name') and any(kw in name for kw in non_individual_keywords):
+                return "Out of Scope"
+            else:
+                return "Needs Review"  # For ambiguous cases
+    except Exception:
+        return "Needs Review"
     return "Out of Scope"
 
-# UI starts here
+# UI setup
 st.set_page_config(page_title="Customer Categorization AI", layout="centered")
 st.title("🧠 Ultra Accurate Customer Name Categorization")
-st.markdown("This tool uses AI + Global Company Keywords to classify customers as **In Scope (Individuals)** or **Out of Scope (Companies)**.")
+st.markdown("This tool uses AI + Global Name Dataset to classify customers as **In Scope (Individuals)** or **Out of Scope (Companies)**.")
 
 uploaded_file = st.file_uploader("📁 Upload your Excel or CSV file", type=["csv", "xlsx"])
 
