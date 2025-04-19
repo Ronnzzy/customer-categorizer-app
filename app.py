@@ -43,7 +43,14 @@ non_individual_keywords = [
 # Load worldwide names dataset (you can create this from existing databases)
 @st.cache_data
 def load_human_names():
-    # For demonstration, replace this part with the actual CSV path. 
-    # Use a dataset containing worldwide names.
+    # Replace this with the actual path to your worldwide names dataset
     human_names_df = pd.read_csv("path/to/worldwide_names.csv")
-    return set(human_names_df
+    return set(human_names_df['name'].str.lower().dropna())  # Ensure 'name' is the correct column
+
+# Load the human names set
+global_human_names = load_human_names()
+
+# Categorization function
+def categorize_customer(name: str) -> str:
+    if not isinstance(name, str) or name.strip() == "":
+        return "Needs
