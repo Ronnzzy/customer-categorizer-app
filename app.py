@@ -1,86 +1,65 @@
-import streamlit as st
-import pandas as pd
 import os
-from io import BytesIO
-import re
+import pandas as pd
+from flask import Flask, request, render_template, send_file
+from names_dataset import NameDataset
 
-# Set page configuration as the first Streamlit command
-st.set_page_config(page_title="Customer Categorization AI", layout="centered")
+app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['PROCESSED_FOLDER'] = 'processed'
 
-# Expanded non-individual keywords for global coverage
-non_individual_keywords = [
-    # Legal/Corporate Structures (Global)
-    "inc", "inc.", "llc", "l.l.c.", "ltd", "ltd.", "limited", "corp", "corporation", "co", "co.", "pte", "pvt", "llp",
-    "gmbh", "ag", "nv", "bv", "kk", "oy", "ab", "plc", "s.a", "s.a.s", "sa", "sarl", "sl", "aps", "as", "kft", "pt", "sdn", "bhd",
-    "srl", "pty ltd", "se", "a/s", "sp zoo", "eurl",
-    # Pharmacy/Healthcare (Global)
-    "pharmacy", "drugstore", "healthcare", "medical", "clinic", "hospital", "apothecary", "dispensary",
-    # Academic/Institutional
-    "university", "uni", "institute", "inst", "college", "academy", "school", "faculty", "dept", "department",
-    # Science/R&D
-    "centre", "center", "r&d", "science", "biotech", "medtech", "ai",
-    # Government/NGO
-    "govt", "government", "ngo", "ministry", "agency",
-    # Professional Services
-    "solutions", "consulting", "partners", "services", "group",
-    # Retail/Media
-    "store", "shop", "outlet", "market",
-    # Others
-    "foundation", "trust", "association"
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+os.makedirs(app.config['PROCESSED_FOLDER'], exist_ok=True)
+
+# Initialize name-dataset once
+nd = NameDataset()
+
+# Out of Scope Keywords
+out_of_scope_keywords = [
+    'ltd', 'inc', 'corp', 'university', 'company', 'foundation', 'trust', 'société', 'sarl',
+    'gmbh', 'llp', 'plc', 'cooperative', 'bank', 'college', 'group', 'enterprise', 'firm',
+    'bv', 'srl', 'sas', 'holding', 'limited', 'association', 'industries', 'partners'
 ]
 
-# Enhanced out-of-scope detection logic
-def classify_name(name):
-    try:
-        name = str(name).strip().lower()
-        # Check for non-individual keywords with regex for better matching
-        for keyword in non_individual_keywords:
-            if re.search(rf'\b{re.escape(keyword)}\b', name):
-                return "Out of Scope"
-        return "In Scope"  # Default to In Scope if no keywords match
-    except Exception as e:
-        st.error(f"Error in classification: {e}")
-        return "Needs Review"
+def categorize_name(name):
+    if not isinstance(name, str):
+        return 'Out of Scope'
+    
+    name_lower = name.lower()
+    if 'needs review' in name_lower:
+        return 'Out of Scope'
+    
+    if any(kw in name_lower for kw in out_of_scope_keywords):
+        return 'Out of Scope'
+    
+    tokens = name.split()
+    for token in tokens:
+        res = nd.search(token)
+        if res['first_name'] or res['last_name']:
+            return 'In Scope'
+    
+    return 'Out of Scope'
 
-# UI setup and main app logic
-st.title("🧠 Out-of-Scope Customer Categorization")
-st.markdown("This tool identifies **Out of Scope (Non-Individuals)** like companies or institutions, with remaining as **In Scope (Individuals)**.")
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    if request.method == 'POST':
+        uploaded_file = request.files['file']
+        if not uploaded_file:
+            return "No file uploaded"
 
-uploaded_file = st.file_uploader("📁 Upload your Excel or CSV file", type=["csv", "xlsx"])
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], uploaded_file.filename)
+        uploaded_file.save(file_path)
 
-if uploaded_file is not None:
-    try:
-        ext = os.path.splitext(uploaded_file.name)[1]
-
-        if ext == ".csv":
-            df = pd.read_csv(uploaded_file)
-        elif ext in [".xls", ".xlsx"]:
-            df = pd.read_excel(uploaded_file)
+        if uploaded_file.filename.endswith('.csv'):
+            df = pd.read_csv(file_path)
         else:
-            st.error("Unsupported file format.")
-            st.stop()
+            df = pd.read_excel(file_path)
 
-        # Auto-detect name column
-        name_col = None
-        for col in df.columns:
-            if "name" in col.lower():
-                name_col = col
-                break
+        name_col = df.columns[0]  # Assume name is in the first column
+        df['Category'] = df[name_col].apply(categorize_name)
 
-        if not name_col:
-            name_col = st.selectbox("Select the column containing customer names:", df.columns)
+        output_path = os.path.join(app.config['PROCESSED_FOLDER'], 'categorized_output.xlsx')
+        df.to_excel(output_path, index=False)
 
-        st.info(f"Using column: **{name_col}** for classification")
+        return send_file(output_path, as_attachment=True)
 
-        df["Scope Status"] = df[name_col].apply(classify_name)
-        st.success("✅ Categorization Complete!")
-
-        st.dataframe(df.head(30))
-
-        # Downloadable result
-        output = BytesIO()
-        df.to_excel(output, index=False, engine='openpyxl')
-        st.download_button("📥 Download Categorized File", output.getvalue(), file_name="categorized_customers.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-
-    except Exception as e:
-        st.error(f"❌ Error: {e}")
+    return render_template('index.html')
