@@ -1,66 +1,85 @@
 import streamlit as st
 import pandas as pd
+import os
 from io import BytesIO
+from names_dataset import NameDataset
 
-# Set up the Streamlit app configuration
-st.set_page_config(page_title="Customer Name Categorizer", layout="wide")
-st.title("🌍 Worldwide Customer Name Categorizer")
+# Load name database
+@st.cache_resource
+def load_name_dataset():
+    return NameDataset()
+nd = load_name_dataset()
 
-# Keywords to identify non-individual entities
-non_individual_keywords = [
-    # Legal/Corporate Structures
-    "inc", "llc", "corp", "corporation", "co", "co.", "pte", "pvt", "llp",
-    "gmbh", "ag", "nv", "bv", "kk", "oy", "ab", "plc", "s.a", "s.a.s", "sa", 
-    "sarl", "sl", "aps", "as", "kft", "pt", "sdn", "bhd",
-    # Academic / Institutional
-    "university", "uni", "institute", "inst", "college", "academy", "school", 
-    "faculty", "dept", "department", "cnrs", "research", "laboratory", "lab", 
-    "education", "educational", "engineering", "polytechnic", "polytech",
-    # Science / R&D
-    "centre", "center", "r&d", "science", "sciences", "technical", "technological", 
-    "technology", "innovation", "biotech", "medtech", "ai", "ml", "cybernetics",
-    # Government / NGO / Nonprofit
-    "govt", "government", "ngo", "n.g.o", "nonprofit", "non-profit", "ministry", 
-    "embassy", "consulate", "office", "admin", "administration", "secretariat", 
-    "authority", "commission", "agency", "bureau",
-    # Professional / Financial Services
-    "solutions", "consulting", "consultants", "advisory", "advisors", "partners", 
-    "partnership", "associates", "services", "ventures", "enterprises", "management", 
-    "finance", "capital", "holdings", "intl", "international", "global", 
-    "industries", "logistics", "trading", "procurement", "group",
-    # Media / Publishing / Books / Retail
-    "store", "shop", "bookshop", "library", "distribution", "distributors", 
-    "outlet", "media", "publications", "books", "press",
-    # Social / Community Organizations
-    "foundation", "fondation", "trust", "union", "syndicate", "board", "chamber", 
-    "association", "club", "society", "network", "cooperative", "federation", 
-    "council", "committee", "coalition", "initiative",
-    # Others (catch-all patterns)
-    "team", "division", "branch", "unit", "project", "consortium", "alliance", 
-    "hub", "taskforce", "incubator", "accelerator"
+# Company-related keywords (extensive)
+company_keywords = [
+    "inc", "ltd", "llc", "plc", "corp", "co.", "company", "corporation", "incorporated",
+    "gmbh", "s.a.", "s.a", "sa", "pte", "pty", "bv", "kg", "kgaa", "oy", "ab", "srl", "sro",
+    "foundation", "trust", "association", "group", "partners", "industries", "enterprise",
+    "consulting", "ventures", "technologies", "systems", "solutions", "services", "university",
+    "college", "institute", "school", "bank", "society", "ngo", "cooperative", "govt", "government",
+    "ministries", "municipal", "hospital", "clinic", "holding", "limited", "union", "agency", "club"
 ]
 
-# Load worldwide names dataset (you can create this from existing databases)
-@st.cache_data
-def load_human_names():
-    # Replace this with the actual path to your worldwide names dataset
-    human_names_df = pd.read_csv("path/to/worldwide_names.csv")
-    return set(human_names_df['name'].str.lower().dropna())  # Ensure 'name' is the correct column
+# Check name category
+def classify_name(name):
+    try:
+        name = str(name).strip()
+        name_lower = name.lower()
 
-# Load the human names set
-global_human_names = load_human_names()
+        # Check for company keywords
+        for keyword in company_keywords:
+            if keyword in name_lower:
+                return "Out of Scope"
 
-# Categorization function
-def categorize_customer(name: str) -> str:
-    if not isinstance(name, str) or name.strip() == "":
-        return "Needs Review"
-    
-    name_clean = name.strip()
-    word_count = len(name_clean.split())
+        # Check if it's a known first name
+        first_word = name.split()[0]
+        result = nd.search(first_word)
+        if result and 'first_name' in result:
+            return "In Scope"
+    except:
+        pass
+    return "Out of Scope"
 
-    # Check for non-individual keywords
-    if any(keyword in name_clean.lower() for keyword in non_individual_keywords):
-        return "Other"
-    elif word_count > 3:
-        return "Other"
-    elif name_clean.lower() in global
+# UI starts here
+st.set_page_config(page_title="Customer Categorization AI", layout="centered")
+st.title("🧠 Ultra Accurate Customer Name Categorization")
+st.markdown("This tool uses AI + Global Company Keywords to classify customers as **In Scope (Individuals)** or **Out of Scope (Companies)**.")
+
+uploaded_file = st.file_uploader("📁 Upload your Excel or CSV file", type=["csv", "xlsx"])
+
+if uploaded_file is not None:
+    try:
+        ext = os.path.splitext(uploaded_file.name)[1]
+
+        if ext == ".csv":
+            df = pd.read_csv(uploaded_file)
+        elif ext in [".xls", ".xlsx"]:
+            df = pd.read_excel(uploaded_file)
+        else:
+            st.error("Unsupported file format.")
+            st.stop()
+
+        # Auto-detect name column
+        name_col = None
+        for col in df.columns:
+            if "name" in col.lower():
+                name_col = col
+                break
+
+        if not name_col:
+            name_col = st.selectbox("Select the column containing customer names:", df.columns)
+
+        st.info(f"Using column: **{name_col}** for classification")
+
+        df["Scope Status"] = df[name_col].apply(classify_name)
+        st.success("✅ Categorization Complete!")
+
+        st.dataframe(df.head(30))
+
+        # Downloadable result
+        output = BytesIO()
+        df.to_excel(output, index=False, engine='openpyxl')
+        st.download_button("📥 Download Categorized File", output.getvalue(), file_name="categorized_customers.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+    except Exception as e:
+        st.error(f"❌ Error: {e}")
