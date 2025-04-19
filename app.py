@@ -2,13 +2,7 @@ import streamlit as st
 import pandas as pd
 import os
 from io import BytesIO
-from names_dataset import NameDataset
-
-# Load name database with caching
-@st.cache_resource
-def load_name_dataset():
-    return NameDataset(load_first_names=True, load_last_names=True)
-nd = load_name_dataset()
+import re
 
 # Expanded non-individual keywords for global coverage
 non_individual_keywords = [
@@ -32,39 +26,23 @@ non_individual_keywords = [
     "foundation", "trust", "association"
 ]
 
-# Enhanced name classification logic
+# Enhanced out-of-scope detection logic
 def classify_name(name):
     try:
         name = str(name).strip().lower()
-        name_parts = name.split()
-
-        # Check for non-individual keywords
+        # Check for non-individual keywords with regex for better matching
         for keyword in non_individual_keywords:
-            if keyword in name:
+            if re.search(rf'\b{re.escape(keyword)}\b', name):
                 return "Out of Scope"
-
-        # Check if it's an individual name using NameDataset
-        if len(name_parts) >= 1:
-            first_word = name_parts[0]
-            last_word = name_parts[-1] if len(name_parts) > 1 else None
-            first_result = nd.search(first_word)
-            last_result = nd.search(last_word) if last_word else {'last_name': None}
-
-            if (first_result.get('first_name') or last_result.get('last_name')) and not any(kw in name for kw in non_individual_keywords):
-                return "In Scope"
-            elif not first_result.get('first_name') and not last_result.get('last_name') and any(kw in name for kw in non_individual_keywords):
-                return "Out of Scope"
-            else:
-                return "Needs Review"  # For ambiguous cases
+        return "In Scope"  # Default to In Scope if no keywords match
     except Exception as e:
         st.error(f"Error in classification: {e}")
         return "Needs Review"
-    return "Out of Scope"
 
 # UI setup
 st.set_page_config(page_title="Customer Categorization AI", layout="centered")
-st.title("🧠 Ultra Accurate Customer Name Categorization")
-st.markdown("This tool uses AI + Global Name Dataset to classify customers as **In Scope (Individuals)** or **Out of Scope (Companies)**.")
+st.title("🧠 Out-of-Scope Customer Categorization")
+st.markdown("This tool identifies **Out of Scope (Non-Individuals)** like companies or institutions, with remaining as **In Scope (Individuals)**.")
 
 uploaded_file = st.file_uploader("📁 Upload your Excel or CSV file", type=["csv", "xlsx"])
 
