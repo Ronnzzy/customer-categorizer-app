@@ -4,6 +4,9 @@ import os
 from io import BytesIO
 import re
 
+# Set page configuration as the first Streamlit command
+st.set_page_config(page_title="Customer Categorization AI", layout="centered")
+
 # Expanded non-individual keywords for global coverage
 non_individual_keywords = [
     # Legal/Corporate Structures (Global)
@@ -39,8 +42,7 @@ def classify_name(name):
         st.error(f"Error in classification: {e}")
         return "Needs Review"
 
-# UI setup
-st.set_page_config(page_title="Customer Categorization AI", layout="centered")
+# UI setup and main app logic
 st.title("🧠 Out-of-Scope Customer Categorization")
 st.markdown("This tool identifies **Out of Scope (Non-Individuals)** like companies or institutions, with remaining as **In Scope (Individuals)**.")
 
