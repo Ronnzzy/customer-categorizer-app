@@ -1,1 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Customer Categorization</title>
+    <style>
+        body { font-family: Arial; margin: 50px; background: #f4f4f4; }
+        .box { background: white; padding: 20px; border-radius: 8px; max-width: 600px; margin: auto; }
+        input[type=file], input[type=submit] { padding: 10px; margin-top: 15px; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h2>Upload Customer File</h2>
+        <form method="POST" enctype="multipart/form-data">
+            <input type="file" name="file" accept=".csv, .xlsx" required><br>
+            <input type="submit" value="Categorize">
+        </form>
+    </div>
+</body>
+</html>
 
